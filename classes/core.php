@@ -225,6 +225,9 @@ class Caldera_Forms
 		add_action(Caldera_Forms_Transient::CRON_ACTION, array('Caldera_Forms_Transient', 'cron_callback'));
 		add_action('caldera_forms_submit_complete', array('Caldera_Forms_Transient', 'cron_callback'));
 
+		//Init GDPR exporters/erasers
+        add_action( 'init', [ Caldera_Forms_GDPR::class, 'register_gdpr' ] );
+
 		/**
 		 * Runs after Caldera Forms core is initialized
 		 *
@@ -420,6 +423,7 @@ class Caldera_Forms
 
 			// check update version
 			$db_version = get_option('CF_DB', 0);
+			update_option( 'CF_DB', 7 );
 			$force_update = false;
 
 			// ensure that admin can only force update
@@ -429,28 +433,30 @@ class Caldera_Forms
 
 			include_once CFCORE_PATH . 'includes/updater.php';
 
-			if (CF_DB > $db_version || $force_update) {
+			if ( CF_DB > $db_version || $force_update) {
 				self::check_tables();
 				if ($db_version < 2 || $force_update) {
 					caldera_forms_db_v2_update();
 				}
 
-				if ($db_version < 4 || $force_update) {
+				if ( $db_version < 4 || $force_update) {
 					self::activate_caldera_forms(true);
 					caldera_forms_write_db_flag(4);
 				}
 
 				if (($db_version < 6 || $force_update) && class_exists('Caldera_Forms_Forms')) {
 					caldera_forms_db_v6_update();
-
 				}
 
-				caldera_forms_write_db_flag(6);
+                if (($db_version < 7 || $force_update) ) {
+                    caldera_forms_db_v7_update();
+                }
+
+				caldera_forms_write_db_flag(CF_DB );
 
 			} else {
 				$version = caldera_forms_get_last_update_version();
 				if (empty($version) || version_compare($version, CFCORE_VER) !== 0) {
-					flush_rewrite_rules();
 					update_option('_calderaforms_lastupdate', CFCORE_VER);
 				}
 
@@ -471,17 +477,13 @@ class Caldera_Forms
 		include_once CFCORE_PATH . 'includes/updater.php';
 		$version = caldera_forms_get_last_update_version();
 
-		wp_schedule_event(time(), 'daily', 'caldera_forms_tracking_send_rows');
 		global $wpdb;
 
 		// ensure urls are there
 		self::init_cf_internal();
 
-		// ensure rewrites
-		flush_rewrite_rules();
-
-		//make sure we have all tables
-		self::check_tables();
+        //make sure we have all tables
+        self::check_tables();
 
 		if ($version >= '1.1.5') {
 			return; // only if 1.1.4 or lower
@@ -691,11 +693,11 @@ class Caldera_Forms
 			return;
 		}
 
-		if (has_filter('caldera_forms_save_field')) {
+		if (has_filter('caldera_forms_update_field')) {
 			$new_data = apply_filters('caldera_forms_update_field', $new_data, $field, $form);
 		}
 
-		if (has_filter('caldera_forms_save_field_' . $field['type'])) {
+		if (has_filter('caldera_forms_update_field_' . $field['type'])) {
 			$new_data = apply_filters('caldera_forms_update_field_' . $field['type'], $new_data, $field, $form);
 		}
 
@@ -849,7 +851,7 @@ class Caldera_Forms
 				if (!empty($user_id)) {
 					if (!empty($details)) {
 						// check user can edit
-						if (current_user_can('edit_posts') || $details['user_id'] === $user_id) {
+						if (current_user_can('edit_posts') || absint($details['user_id'] ) === $user_id) {
 							$entryid = $_POST['_cf_frm_edt'];
 						} else {
 							return new WP_Error('error', __("Permission denied.", 'caldera-forms'));
@@ -2930,7 +2932,7 @@ class Caldera_Forms
 						$transdata['note'] = __('Permission denied or entry does not exist.', 'caldera-forms');
 					} else {
 						// check user can edit
-						if (current_user_can('edit_posts') || $details['user_id'] === $user_id) {
+						if (current_user_can('edit_posts') || absint($details['user_id'] ) === $user_id) {
 							// can edit.
 						} else {
 							$transdata['error'] = true;
@@ -4320,7 +4322,7 @@ class Caldera_Forms
 
 					if (!empty($details)) {
 						// check user can edit
-						if (current_user_can('edit_posts') || (is_array($details) && $details['user_id'] === $user_id)) {
+						if (current_user_can('edit_posts') || (is_array($details) && absint($details['user_id'] ) === $user_id)) {
 							// can edit.
 							$entry_id = (int)$details['id'];
 						} else {

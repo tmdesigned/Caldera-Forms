@@ -1,6 +1,9 @@
 const SelectControl = wp.components.SelectControl;
 import {CALDERA_FORMS_STORE_NAME} from "../store";
-const { __ } = wp.i18n;
+import { __ } from '@wordpress/i18n';
+//Import wp.data's HOC
+import { withSelect } from "@wordpress/data";
+
 
 /**
  * Get ID of form
@@ -16,6 +19,7 @@ const getFormId = (form) => {
     }
     return form.hasOwnProperty('formId' ) ? form.formId : form.ID;
 };
+
 /**
  * Basic component to choose forms with
  *
@@ -24,23 +28,30 @@ const getFormId = (form) => {
  * @constructor
  */
 export const FormChooser = (props) => {
-    const opts = props.forms;
+	const {forms,formId} = props;
+    const opts = ! Array.isArray(forms) ? Object.values(forms) : forms;
+
+    const value = formId && forms.hasOwnProperty(formId) ? formId : null;
+    if( ! value ){
+		opts.unshift({
+			value: null,
+			label: ''
+		});
+	}
+
     return (
         <SelectControl
             className={'caldera-forms-form-chooser'}
             label={ __( 'Choose A Form' ) }
-            value={ props.formId }
+            value={ value }
             options={ opts.map( (form) => ( {
                 value: getFormId(form),
                 label: form.name,
             } ) ) }
             onChange={ (newValue) => {props.onChange(newValue)} }
         />
-    )
+    );
 };
-
-//Import wp.data's HOC
-const { withSelect } = wp.data;
 
 /**
  * Form chooser wrapped in form selector

@@ -43,8 +43,8 @@
 
 		computed: {
 			publicKey:{
-			    get(){
-                    return this.$store.getters.publicKey;
+			    get() {
+					return this.$store.getters.publicKey;
 				},
 				set(newValue){
                     this.$store.commit('publicKey',newValue);
@@ -58,20 +58,13 @@
                     this.$store.commit('secretKey',newValue);
                 }
             },
-            connected:{
-                get(){
-                    return this.$store.getters.connected;
-                },
-                set(newValue){
-                    this.$store.commit('connected',newValue);
-                }
+            connected(){
+                return this.$store.getters.connected;
+
             },
 
 		},
 		methods: {
-			...mapMutations({
-                secretKey: 'secretKey',
-            }),
 			publicKeyChange(ev){
                 this.$store.commit('publicKey',ev.target.value);
 			},

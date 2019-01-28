@@ -42,6 +42,7 @@ const extractConfig = {
 
 // Define JavaScript entry points
 const entryPointNames = [
+    'privacy',
     'blocks',
     'pro'
 ];
@@ -69,7 +70,7 @@ wpDependencies.forEach( wpDependency => {
 
 // Start of main webpack config
 const config = {
-    // Go through each entry point and prepare for use with extenrals
+    // Go through each entry point and prepare for use with externals
     entry: entryPointNames.reduce( ( memo, entryPointName ) => {
         memo[ entryPointName ] = './clients/' + entryPointName + '/index.js';
         return memo;
